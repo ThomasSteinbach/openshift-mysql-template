@@ -24,7 +24,6 @@ objects:
     resources:
       requests:
         storage: "${STORAGE_SIZE_IN_GB}Gi"
-    volumeName: pv-mysql
 - apiVersion: v1
   kind: DeploymentConfig
   metadata:
