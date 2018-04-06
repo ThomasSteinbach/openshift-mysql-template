@@ -17,7 +17,7 @@ objects:
     labels:
       app: ${APPLICATION_NAME}
       template: mysql-persistent-template
-    name: mysql
+    name: var-lib-mysql-data
   spec:
     accessModes:
     - ReadWriteOnce
@@ -99,16 +99,16 @@ objects:
           terminationMessagePolicy: File
           volumeMounts:
           - mountPath: /var/lib/mysql/data
-            name: mysql-data
+            name: var-lib-mysql-data
         dnsPolicy: ClusterFirst
         restartPolicy: Always
         schedulerName: default-scheduler
         securityContext: {}
         terminationGracePeriodSeconds: 30
         volumes:
-        - name: mysql-data
+        - name: var-lib-mysql-data
           persistentVolumeClaim:
-            claimName: mysql
+            claimName: var-lib-mysql-data
     test: false
     triggers:
     - imageChangeParams:
