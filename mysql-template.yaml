@@ -4,8 +4,24 @@ metadata:
   name: mysql-template
 objects:
 - apiVersion: v1
+  kind: ImageStream
+  metadata:
+    labels:
+      app: ${APPLICATION_NAME}
+    name: mysql
+  spec:
+    lookupPolicy:
+      local: false
+    tags:
+    - from:
+        kind: DockerImage
+        name: library/mysql:5.7
+      importPolicy: {}
+      name: "latest"
+      referencePolicy:
+        type: Source
+- apiVersion: v1
   stringData:
-    database-password: "${DATABASE_PASSWORD}"
     database-root-password: "${DATABASE_ROOT_PASSWORD}"
   kind: Secret
   metadata:
@@ -16,8 +32,7 @@ objects:
   metadata:
     labels:
       app: ${APPLICATION_NAME}
-      template: mysql-persistent-template
-    name: var-lib-mysql-data
+    name: var-lib-mysql
   spec:
     accessModes:
     - ReadWriteOnce
@@ -32,7 +47,6 @@ objects:
     generation: 1
     labels:
       app: ${APPLICATION_NAME}
-      template: mysql-persistent-template
     name: mysql
   spec:
     replicas: 1
@@ -51,13 +65,6 @@ objects:
       spec:
         containers:
         - env:
-          - name: MYSQL_USER
-            value: "${APPLICATION_NAME}"
-          - name: MYSQL_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                key: database-password
-                name: ${APPLICATION_NAME}-secrets
           - name: MYSQL_ROOT_PASSWORD
             valueFrom:
               secretKeyRef:
@@ -65,7 +72,7 @@ objects:
                 name: ${APPLICATION_NAME}-secrets
           - name: MYSQL_DATABASE
             value: "${APPLICATION_NAME}"
-          image: centos/mysql-57-centos7
+          image: library/mysql:5.7
           imagePullPolicy: IfNotPresent
           livenessProbe:
             failureThreshold: 3
@@ -98,17 +105,17 @@ objects:
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
           volumeMounts:
-          - mountPath: /var/lib/mysql/data
-            name: var-lib-mysql-data
+          - mountPath: /var/lib/mysql
+            name: var-lib-mysql
         dnsPolicy: ClusterFirst
         restartPolicy: Always
         schedulerName: default-scheduler
         securityContext: {}
         terminationGracePeriodSeconds: 30
         volumes:
-        - name: var-lib-mysql-data
+        - name: var-lib-mysql
           persistentVolumeClaim:
-            claimName: var-lib-mysql-data
+            claimName: var-lib-mysql
     test: false
     triggers:
     - imageChangeParams:
@@ -128,7 +135,6 @@ objects:
       template.openshift.io/expose-uri: mysql://{.spec.clusterIP}:{.spec.ports[?(.name=="mysql")].port}
     labels:
       app: ${APPLICATION_NAME}
-      template: mysql-persistent-template
     name: mysql
   spec:
     ports:
@@ -143,10 +149,6 @@ objects:
 parameters:
   - name: APPLICATION_NAME
     value: mysql
-  - name: DATABASE_PASSWORD
-    generate: expression
-    from: "[a-zA-Z0-9]{32}"
-    required: true
   - name: DATABASE_ROOT_PASSWORD
     generate: expression
     from: "[a-zA-Z0-9]{32}"
